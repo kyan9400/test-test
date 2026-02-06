@@ -1,0 +1,312 @@
+openapi: 3.0.3
+info:
+  title: Mini CRM API
+  description: REST API for ticket management system
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8080/api
+    description: Local development server
+  - url: https://your-domain.com/api
+    description: Production server
+
+tags:
+  - name: Tickets
+    description: Ticket management operations
+  - name: Statistics
+    description: Ticket statistics
+
+paths:
+  /tickets:
+    post:
+      tags:
+        - Tickets
+      summary: Create a new ticket
+      description: Submit a new support ticket with optional file attachments
+      operationId: createTicket
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - phone
+                - subject
+                - text
+              properties:
+                name:
+                  type: string
+                  description: Customer name
+                  example: John Doe
+                  maxLength: 255
+                email:
+                  type: string
+                  format: email
+                  description: Customer email address
+                  example: john@example.com
+                phone:
+                  type: string
+                  description: Phone number in E.164 format
+                  pattern: '^\+[1-9]\d{6,14}$'
+                  example: "+1234567890"
+                subject:
+                  type: string
+                  description: Ticket subject
+                  example: Help with my order
+                  maxLength: 255
+                text:
+                  type: string
+                  description: Ticket message content
+                  example: I need assistance with my recent order...
+                  maxLength: 5000
+                files:
+                  type: array
+                  description: Optional file attachments (max 5 files, max 10MB each)
+                  items:
+                    type: string
+                    format: binary
+                  maxItems: 5
+      responses:
+        '201':
+          description: Ticket created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Ticket'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '429':
+          description: Daily ticket limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: You can only submit one ticket per day.
+                  error:
+                    type: string
+                    example: daily_limit_exceeded
+
+  /tickets/statistics:
+    get:
+      tags:
+        - Statistics
+      summary: Get ticket statistics
+      description: Retrieve ticket statistics for a specified time period
+      operationId: getStatistics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          description: Time period for statistics
+          schema:
+            type: string
+            enum:
+              - day
+              - week
+              - month
+            default: day
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Statistics'
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthenticated.
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User does not have the right roles.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Sanctum API token
+
+  schemas:
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        subject:
+          type: string
+          example: Help with my order
+        text:
+          type: string
+          example: I need assistance with my recent order...
+        status:
+          type: string
+          enum:
+            - new
+            - in_progress
+            - done
+          example: new
+        status_label:
+          type: string
+          example: Новая
+        answered_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000000Z"
+        customer:
+          $ref: '#/components/schemas/Customer'
+        assigned_user:
+          $ref: '#/components/schemas/User'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        phone:
+          type: string
+          example: "+1234567890"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:30:00.000000Z"
+
+    User:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Manager One
+        email:
+          type: string
+          format: email
+          example: manager1@example.com
+
+    File:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: document.pdf
+        size:
+          type: integer
+          description: File size in bytes
+          example: 102400
+        mime_type:
+          type: string
+          example: application/pdf
+        url:
+          type: string
+          format: uri
+          example: https://your-domain.com/storage/1/document.pdf
+
+    Statistics:
+      type: object
+      properties:
+        period:
+          type: string
+          enum:
+            - day
+            - week
+            - month
+          example: day
+        total:
+          type: integer
+          description: Total number of tickets in the period
+          example: 25
+        by_status:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+                example: new
+              label:
+                type: string
+                example: Новая
+              count:
+                type: integer
+                example: 10
+
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: The given data was invalid.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            email:
+              - The email field is required.
+            phone:
+              - Phone must be in E.164 format (e.g., +1234567890).
+
