@@ -9,11 +9,13 @@ Laravel 12 mini-CRM for collecting and processing support tickets via an embedda
 - spatie/laravel-permission (roles)
 - spatie/laravel-medialibrary (file attachments)
 
-## Setup
+## How to Run
 
-### Docker
+### Option 1: Docker
 
 ```bash
+git clone https://github.com/kyan9400/test-test.git
+cd test-test
 cp .env.example .env
 docker-compose up -d
 docker-compose exec app composer install
@@ -24,24 +26,56 @@ docker-compose exec app php artisan migrate --seed
 docker-compose exec app php artisan storage:link
 ```
 
-App runs on `http://localhost:8080`
+Open in browser: **http://localhost:8080**
 
-### Local
+### Option 2: Local (without Docker)
+
+**Prerequisites:** PHP 8.4, Composer, MySQL
+
+1. Clone and install dependencies:
 
 ```bash
+git clone https://github.com/kyan9400/test-test.git
+cd test-test
 composer install
+```
+
+2. Configure environment:
+
+```bash
 cp .env.example .env
 php artisan key:generate
+```
+
+3. Create a MySQL database and update `.env` with your credentials:
+
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=mini_crm
+DB_USERNAME=root
+DB_PASSWORD=your_password
+```
+
+4. Publish packages and run migrations:
+
+```bash
 php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
 php artisan vendor:publish --provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" --tag="medialibrary-migrations"
 php artisan migrate --seed
 php artisan storage:link
+```
+
+5. Start the server:
+
+```bash
 php artisan serve
 ```
 
-App runs on `http://localhost:8000`
+Open in browser: **http://localhost:8000**
 
-## Credentials
+## Login Credentials
 
 | Role    | Email                | Password |
 |---------|----------------------|----------|
